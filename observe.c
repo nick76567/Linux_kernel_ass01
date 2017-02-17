@@ -3,6 +3,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#define USER_MODE_NORMAL 1
+#define USER_MODE_NICED 2
+#define	KERNAL_MODE 3
+#define IDLE 4
+
 void read_file_processor(char *file_name, char *id, char *processor){
 	FILE *fin = fopen(file_name, "r");
 
@@ -117,8 +122,89 @@ void sec_to_dhms(double sec, char *uptime){
 		strncat(uptime, buffer, 2);
 }
 
+double read_file_stat(char *file_name, int mode){
+	FILE *fin = fopen(file_name, "r");
+
+	if(fin == NULL){
+		perror("File doesn't open\n");
+		exit(-1);
+	}
+
+	char buffer[16];
+	
+	int i;
+	for(i = 0; i <= mode; i++){
+		fscanf(fin, "%s", buffer);
+	}
+
+	return atof(buffer) / 100;
+}
+
+void find_line_first_occurence(char *file_name, char *word, char *line){
+	FILE *fin = fopen(file_name, "r");
+
+	if(fin == NULL){
+		perror("File doesn't open\n");
+		exit(-1);
+	}
+
+	char buffer[128];
+
+	while(fgets(buffer, 128, fin) != NULL){
+		if(strstr(buffer, word) != NULL){
+			strcpy(line, buffer);
+			break;
+		}
+	}
+}
+
+double context_switch_num(){
+	char buffer[32];
+	char ctxt[32];
+
+	find_line_first_occurence("/proc/stat", "ctxt", buffer);
+	sscanf(buffer, "%*s %s", ctxt);
+
+	return atof(ctxt);
+}
+
+double process_create_num(){
+	char buffer[32];
+	char process[32];
+
+	find_line_first_occurence("/proc/stat", "processes", buffer);
+	sscanf(buffer, "%*s %s", process);
+
+	return atof(process);
+}
+
+double mem_free_num(){
+	char buffer[32];
+	char memory[32];
+
+	find_line_first_occurence("/proc/meminfo", "MemFree", buffer);
+	sscanf(buffer, "%*s %s", memory);
+
+	//printf("%s\n", memory);
+
+	return atof(memory);
+}
+
+
+double mem_total_num(){
+	char buffer[32];
+	char memory[32];
+
+	find_line_first_occurence("/proc/meminfo", "MemTotal", buffer);
+	sscanf(buffer, "%*s %s", memory);
+
+	//printf("%s\n", memory);
+
+	return atof(memory);
+}
+
 int main(int argc, char **argv){
-/*
+
 	char *id, *processor;
 	id = (char*)malloc(sizeof(char)*16);
 	processor = (char*)malloc(sizeof(char)*512);
@@ -174,19 +260,45 @@ int main(int argc, char **argv){
 	printf("%s\n", uptime);
 
 	free(uptime);
-*/
+
+
+
 	if(argc == 2){
 		printf("----------------------------------------------------------------\n");
 		printf("Observe period is: %ss\n", argv[1]);
-
+		printf("----------------------------------------------------------------\n");
 		while(1){
+			double old_user_mode_time = read_file_stat("/proc/stat", USER_MODE_NORMAL) + read_file_stat("/proc/stat", USER_MODE_NICED);
+			double old_kernal_mode_time = read_file_stat("/proc/stat", KERNAL_MODE);
+			double old_idle_time = read_file_stat("/proc/stat", IDLE);
+			double old_context_switch = context_switch_num();
+			double old_process_create = process_create_num();
+			sleep((unsigned int)atoi(argv[1]));
+			double new_user_mode_time = read_file_stat("/proc/stat", USER_MODE_NORMAL) + read_file_stat("/proc/stat", USER_MODE_NICED);
+			double new_kernal_mode_time = read_file_stat("/proc/stat", KERNAL_MODE);
+			double new_idle_time = read_file_stat("/proc/stat", IDLE);
+			double new_context_switch = context_switch_num();
+			double new_process_create = process_create_num();
+			int available_memory = (int)((mem_free_num() / mem_total_num()) * 100);	
+
+
+			printf("Time (seconds) in user mode: %f\n\n", new_user_mode_time - old_user_mode_time);
+			printf("Time (seconds) in sys mode: %f\n\n", new_kernal_mode_time - old_kernal_mode_time);
+			printf("Time (seconds) in idle mode: %f\n\n", new_idle_time - old_idle_time);
+			printf("Context switch rate (per minute): %f\n\n", ((new_context_switch - old_context_switch) / 60.0));
+			printf("Processes created (per minute): %f\n\n", ((new_process_create - old_process_create) / 60.0));
+			printf("The amount of available memory: %fKB\n\n", mem_free_num());
+			printf("The amount of available memory: %d%%\n\n", available_memory);
+
+
 			printf("----------------------------------------------------------------\n");
 			
-			printf("----------------------------------------------------------------\n");
-			sleep((unsigned int)atoi(argv[1]));
 		}
 	}
 
 
+
+	//mem_free_num();
+	//mem_total_num();
 	return 0;
 }

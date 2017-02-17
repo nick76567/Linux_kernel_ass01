@@ -136,3 +136,27 @@
 // Problem:
 // print some strange word at beginner
 
+
+// fscanf
+// Author: Nick Wong
+// Date: 17-Feb-2017
+// Content:
+// bug.
+	int buffer;
+	fscanf(fin, "%d", &buffer);
+// solve
+	char buffer[8];
+	fscanf(fin, %s, buffer);
+// Problem:
+// can't use fscanf to convert the string to int
+
+// printf
+// Author: Nick Wong
+// Date: 17-Feb-2017
+// Content:
+// bug.
+	printf("\%");
+// solve.
+	printf("%%");
+// Problem:
+// to print '%', we have use %%
