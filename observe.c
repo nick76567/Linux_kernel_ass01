@@ -8,7 +8,7 @@
 #define	KERNAL_MODE 3
 #define IDLE 4
 
-void read_file_processor(char *file_name, char *id, char *processor){
+void find_line_first_occurence(char *file_name, char *word, char *line){
 	FILE *fin = fopen(file_name, "r");
 
 	if(fin == NULL){
@@ -16,7 +16,40 @@ void read_file_processor(char *file_name, char *id, char *processor){
 		exit(-1);
 	}
 
-	char *buffer = (char*)malloc(sizeof(char)*256);
+	char buffer[128];
+
+	while(fgets(buffer, 128, fin) != NULL){
+		if(strstr(buffer, word) != NULL){
+			strcpy(line, buffer);
+			break;
+		}
+	}
+
+	fclose(fin);
+}
+
+void convert_time_format(char* uptime, char time_type, int time){
+	char buffer[16];
+	if(time < 10) strcat(uptime, "0");
+
+	if(time_type == 'S'){
+		sprintf(buffer, "%d%c", time, time_type);
+	} else {
+	sprintf(buffer, "%d%c:", time, time_type);
+	}
+	
+	strcat(uptime, buffer);
+}
+
+void read_file_processor(char *id, char *processor){
+	FILE *fin = fopen("/proc/cpuinfo", "r");
+
+	if(fin == NULL){
+		perror("File doesn't open\n");
+		exit(-1);
+	}
+
+	char buffer[256];
 	
 	while(fgets(buffer, 256, fin) != NULL){
 		if(strncmp(buffer, "processor", 9) == 0){
@@ -31,64 +64,47 @@ void read_file_processor(char *file_name, char *id, char *processor){
 	}
 
 	fclose(fin);
-	free(buffer);
 }
 
-void read_file_version(char *file_name, char *version){
-	FILE *fin = fopen(file_name, "r");
+void read_file_version(char *version){
+	FILE *fin = fopen("/proc/version", "r");
 
 	if(fin == NULL){
 		perror("File doesn't open\n");
 		exit(-1);
 	}
 	
-	fgets(version, 256, fin);
+	fscanf(fin, "%*s %*s %s", version);
 	fclose(fin);
 }
 
-void read_file_memory(char *file_name, char *memory){
-	FILE *fin = fopen(file_name, "r");
+void read_file_memory(char *memory){
+	char buffer[128];
 
-	if(fin == NULL){
-		perror("File doesn't open\n");
-		exit(-1);
-	}
-
-	char *buffer = (char*)malloc(sizeof(char)*128);
-
-
-	while(fgets(buffer, 128, fin) != NULL){
-		if(strncmp(buffer, "MemTotal", 8) == 0){
-			char *target = strrchr(buffer, ':');
-			strcpy(memory, target + 8);
-			break;
-		}
-	}
-
-	fclose(fin);
-	free(buffer);
+	find_line_first_occurence("/proc/meminfo", "MemTotal", buffer);
+	sscanf(buffer, "%*s %s", memory);
 }
 
-double read_file_uptime(char *file_name){
+double read_file_uptime(){
 	double result = 0;
 	char buffer[2][16];
 
-	FILE *fin = fopen(file_name, "r");
+	FILE *fin = fopen("/proc/uptime", "r");
 
 	if(fin == NULL){
 		perror("File doesn't open\n");
 		exit(-1);
 	}
 
-
 	fscanf(fin, "%s %s", buffer[0], buffer[1]);
-	return result = atof(buffer[0]) + atof(buffer[1]);	
+	return result = atof(buffer[0]) + atof(buffer[1]);
+
+	fclose(fin);	
 }
 
 void sec_to_dhms(double sec, char *uptime){
 	int dd = 0, hh = 0, mm = 0, ss = 0;
 	int remainder = (int)sec;
-	char buffer[16];
 
 	dd = remainder / 60 / 60 / 24;
 	remainder = sec - (dd * 60 * 60 * 24);
@@ -97,29 +113,10 @@ void sec_to_dhms(double sec, char *uptime){
 	mm = remainder / 60;
 	ss = sec - (dd * 60 * 60 * 24) - (hh * 60 * 60) - mm * 60;
 
-		sprintf(buffer, "%dD:", dd);
-	if(dd < 10){
-		strcat(uptime, "0");
-	}
-		strcat(uptime, buffer);
-
-		sprintf(buffer, "%dH:", hh);
-	if(hh < 10){
-		strcat(uptime, "0");
-	}
-		strcat(uptime, buffer);
-
-		sprintf(buffer, "%dM:", mm);
-	if(mm < 10){
-		strcat(uptime, "0");
-	}
-		strcat(uptime, buffer);
-
-		sprintf(buffer, "%dS", ss);
-	if(ss < 10){
-		strcat(uptime, "0");
-	}
-		strcat(uptime, buffer);
+	convert_time_format(uptime, 'D', dd);
+	convert_time_format(uptime, 'H', hh);
+	convert_time_format(uptime, 'M', mm);
+	convert_time_format(uptime, 'S', ss);
 }
 
 double read_file_stat(char *file_name, int mode){
@@ -140,23 +137,7 @@ double read_file_stat(char *file_name, int mode){
 	return atof(buffer) / 100;
 }
 
-void find_line_first_occurence(char *file_name, char *word, char *line){
-	FILE *fin = fopen(file_name, "r");
 
-	if(fin == NULL){
-		perror("File doesn't open\n");
-		exit(-1);
-	}
-
-	char buffer[128];
-
-	while(fgets(buffer, 128, fin) != NULL){
-		if(strstr(buffer, word) != NULL){
-			strcpy(line, buffer);
-			break;
-		}
-	}
-}
 
 double context_switch_num(){
 	char buffer[32];
@@ -212,7 +193,7 @@ int main(int argc, char **argv){
 	id[0] = '\0';
 	processor[0] = '\0';
 
-	read_file_processor("/proc/cpuinfo", id, processor);
+	read_file_processor(id, processor);
 
 	char *token_id, *token_processor, *save_id, *save_processor;
 	token_id = strtok_r(id, "\n", &save_id);
@@ -232,35 +213,30 @@ int main(int argc, char **argv){
 	char *version;
 	version = (char*)malloc(sizeof(char)*256);
 	version[0] = '\0';
-	read_file_version("/proc/version", version);
-
-	char *token = strtok(version, "(");
-	token[strlen(token) - 1] = '\0';
+	read_file_version(version);
 	
 	printf("-------------------------Kernel Version-------------------------\n");
-	printf("%s\n", token);
+	printf("Linux version %s\n", version);
 
 	free(version);
 
 
-
 	char *memory = (char*)malloc(sizeof(char)*128);
 	memory[0] = '\0';
-	read_file_memory("/proc/meminfo", memory);
+	read_file_memory(memory);
 
 	printf("------------------------Amount of Memory------------------------\n");
-	printf("Installed Memory:%s", memory);	
+	printf("Installed Memory: %s KB\n", memory);	
 	free(memory);
 
 	
 	char *uptime = (char*)malloc(sizeof(char)*32);
 	uptime[0] = '\0';
-	sec_to_dhms(read_file_uptime("/proc/uptime"), uptime);
+	sec_to_dhms(read_file_uptime(), uptime);
 	printf("----------------------Up Time Since Booted----------------------\n");	
 	printf("%s\n", uptime);
 
 	free(uptime);
-
 
 
 	if(argc == 2){
@@ -290,15 +266,10 @@ int main(int argc, char **argv){
 			printf("The amount of available memory: %.0fKB\n\n", mem_free_num());
 			printf("The amount of available memory: %d%%\n\n", available_memory);
 
-
 			printf("----------------------------------------------------------------\n");
 			
 		}
 	}
 
-
-
-	//mem_free_num();
-	//mem_total_num();
 	return 0;
 }
