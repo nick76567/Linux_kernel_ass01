@@ -95,31 +95,31 @@ void sec_to_dhms(double sec, char *uptime){
 	hh = remainder / 60 / 60;
 	remainder = sec - (dd * 60 * 60 * 24) - (hh * 60 * 60);
 	mm = remainder / 60;
-	ss = sec - (dd * 60 * 60 * 24) - (hh * 60 * 60) - mm / 60;
+	ss = sec - (dd * 60 * 60 * 24) - (hh * 60 * 60) - mm * 60;
 
-		sprintf(buffer, "%d:", dd);
+		sprintf(buffer, "%dD:", dd);
 	if(dd < 10){
 		strcat(uptime, "0");
 	}
 		strcat(uptime, buffer);
 
-		sprintf(buffer, "%d:", hh);
+		sprintf(buffer, "%dH:", hh);
 	if(hh < 10){
 		strcat(uptime, "0");
 	}
 		strcat(uptime, buffer);
 
-		sprintf(buffer, "%d:", mm);
+		sprintf(buffer, "%dM:", mm);
 	if(mm < 10){
 		strcat(uptime, "0");
 	}
 		strcat(uptime, buffer);
 
-		sprintf(buffer, "%d", ss);
+		sprintf(buffer, "%dS", ss);
 	if(ss < 10){
 		strcat(uptime, "0");
 	}
-		strncat(uptime, buffer, 2);
+		strcat(uptime, buffer);
 }
 
 double read_file_stat(char *file_name, int mode){
@@ -218,7 +218,7 @@ int main(int argc, char **argv){
 	token_id = strtok_r(id, "\n", &save_id);
 	token_processor = strtok_r(processor, "\n", &save_processor);
 
-	printf("--------------------------Processor  Type---------------------------------------\n");
+	printf("-------------------------Processer Type-------------------------\n");
 
 	while(token_id != NULL){
 		printf("Processor-%s: %s\n", token_id, token_processor);
@@ -237,7 +237,7 @@ int main(int argc, char **argv){
 	char *token = strtok(version, "(");
 	token[strlen(token) - 1] = '\0';
 	
-	printf("---------------------------Kernel version---------------------------------------\n");
+	printf("-------------------------Kernel Version-------------------------\n");
 	printf("%s\n", token);
 
 	free(version);
@@ -248,7 +248,7 @@ int main(int argc, char **argv){
 	memory[0] = '\0';
 	read_file_memory("/proc/meminfo", memory);
 
-	printf("---------------------------Amount of memory-------------------------------------\n");
+	printf("------------------------Amount of Memory------------------------\n");
 	printf("Installed Memory:%s", memory);	
 	free(memory);
 
@@ -256,7 +256,7 @@ int main(int argc, char **argv){
 	char *uptime = (char*)malloc(sizeof(char)*32);
 	uptime[0] = '\0';
 	sec_to_dhms(read_file_uptime("/proc/uptime"), uptime);
-	printf("---------------------------Up Time Since Booted----------------------------------\n");	
+	printf("----------------------Up Time Since Booted----------------------\n");	
 	printf("%s\n", uptime);
 
 	free(uptime);
@@ -282,12 +282,12 @@ int main(int argc, char **argv){
 			int available_memory = (int)((mem_free_num() / mem_total_num()) * 100);	
 
 
-			printf("Time (seconds) in user mode: %f\n\n", new_user_mode_time - old_user_mode_time);
-			printf("Time (seconds) in sys mode: %f\n\n", new_kernal_mode_time - old_kernal_mode_time);
-			printf("Time (seconds) in idle mode: %f\n\n", new_idle_time - old_idle_time);
-			printf("Context switch rate (per minute): %f\n\n", ((new_context_switch - old_context_switch) / 60.0));
-			printf("Processes created (per minute): %f\n\n", ((new_process_create - old_process_create) / 60.0));
-			printf("The amount of available memory: %fKB\n\n", mem_free_num());
+			printf("Time (seconds) in user mode: %.2f\n\n", new_user_mode_time - old_user_mode_time);
+			printf("Time (seconds) in sys mode: %.2f\n\n", new_kernal_mode_time - old_kernal_mode_time);
+			printf("Time (seconds) in idle mode: %.2f\n\n", new_idle_time - old_idle_time);
+			printf("Context switch rate (per minute): %.2f\n\n", ((new_context_switch - old_context_switch) / 60.0));
+			printf("Processes created (per minute): %.2f\n\n", ((new_process_create - old_process_create) / 60.0));
+			printf("The amount of available memory: %.0fKB\n\n", mem_free_num());
 			printf("The amount of available memory: %d%%\n\n", available_memory);
 
 
