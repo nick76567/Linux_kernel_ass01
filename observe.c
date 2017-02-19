@@ -200,19 +200,20 @@ int main(int argc, char **argv){
 
 	if(argc == 2){
 		double old_mode_time[3], new_mode_time[3];
+		double old_context_switch, new_context_switch, old_process_create, new_process_create, available_memory;
 
 		printf("----------------------------------------------------------------\n");
 		printf("Observe period is: %ss\n", argv[1]);
 		printf("----------------------------------------------------------------\n");
 		while(1){
 			read_file_stat(old_mode_time);
-			double old_context_switch = read_file_num("/proc/stat", "ctxt");
-			double old_process_create = read_file_num("/proc/stat", "processes");
+			old_context_switch = read_file_num("/proc/stat", "ctxt");
+			old_process_create = read_file_num("/proc/stat", "processes");
 			sleep((unsigned int)atoi(argv[1]));
 			read_file_stat(new_mode_time);
-			double new_context_switch = read_file_num("/proc/stat", "ctxt");
-			double new_process_create = read_file_num("/proc/stat", "processes");
-			int available_memory = (int)((read_file_num("/proc/meminfo", "MemFree") / read_file_num("/proc/meminfo", "MemTotal")) * 100);	
+			new_context_switch = read_file_num("/proc/stat", "ctxt");
+			new_process_create = read_file_num("/proc/stat", "processes");
+			available_memory = ((read_file_num("/proc/meminfo", "MemFree") / read_file_num("/proc/meminfo", "MemTotal")) * 100);	
 
 			printf("Time (seconds) in user mode: %.2f\n\n", new_mode_time[USER_MODE] - old_mode_time[USER_MODE]);
 			printf("Time (seconds) in sys mode: %.2f\n\n", new_mode_time[KERNAL_MODE] - old_mode_time[KERNAL_MODE]);
@@ -220,7 +221,7 @@ int main(int argc, char **argv){
 			printf("Context switch rate (per minute): %.2f\n\n", ((new_context_switch - old_context_switch) / 60.0));
 			printf("Processes created (per minute): %.2f\n\n", ((new_process_create - old_process_create) / 60.0));
 			printf("The amount of available memory: %.0fKB\n\n", read_file_num("/proc/meminfo", "MemFree"));
-			printf("The amount of available memory: %d%%\n\n", available_memory);
+			printf("The amount of available memory: %.0f%%\n\n", available_memory);
 
 			printf("----------------------------------------------------------------\n");
 			
