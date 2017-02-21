@@ -86,7 +86,7 @@ void read_file_memory(char *memory){
 
 double read_file_uptime(){
 	double result = 0;
-	double buffer[2];
+	
 
 	FILE *fin = fopen("/proc/uptime", "r");
 
@@ -95,9 +95,9 @@ double read_file_uptime(){
 		exit(-1);
 	}
 
-	fscanf(fin, "%lf %lf", &buffer[0], &buffer[1]);
-	return result = buffer[0] + buffer[1];
-
+	fscanf(fin, "%lf", &result);
+	
+	return result;
 	fclose(fin);	
 }
 
