@@ -86,7 +86,7 @@ void read_file_memory(char *memory){
 
 double read_file_uptime(){
 	double result = 0;
-	char buffer[2][16];
+	
 
 	FILE *fin = fopen("/proc/uptime", "r");
 
@@ -95,9 +95,9 @@ double read_file_uptime(){
 		exit(-1);
 	}
 
-	fscanf(fin, "%s %s", buffer[0], buffer[1]);
-	return result = atof(buffer[0]) + atof(buffer[1]);
-
+	fscanf(fin, "%lf", &result);
+	
+	return result;
 	fclose(fin);	
 }
 
@@ -126,22 +126,23 @@ void read_file_stat(double* processor_mode_time){
 		exit(-1);
 	}
 
-	char buffer[4][16];
-	fscanf(fin, "%*s %s %s %s %s", buffer[0], buffer[1], buffer[2], buffer[3]);
-	processor_mode_time[USER_MODE] = (atof(buffer[0]) + atof(buffer[1])) / 100;
-	processor_mode_time[KERNAL_MODE] = atof(buffer[2]) / 100;
-	processor_mode_time[IDLE] = atof(buffer[3]) / 100;
+	double buffer[4];
+	fscanf(fin, "%*s %lf %lf %lf %lf", &buffer[0], &buffer[1], &buffer[2], &buffer[3]);
+	processor_mode_time[USER_MODE] = (buffer[0] + buffer[1]) / 100;
+	processor_mode_time[KERNAL_MODE] = buffer[2] / 100;
+	processor_mode_time[IDLE] = buffer[3] / 100;
 	
 	fclose(fin);
 }
 
 double read_file_num(char* file_name, char* target){
 	char buffer[32];
+	double result;
 
 	find_line_first_occurence(file_name, target, buffer);
-	sscanf(buffer, "%*s %s", buffer);
+	sscanf(buffer, "%*s %lf", &result);
 
-	return atof(buffer);
+	return result;
 }
 
 int main(int argc, char **argv){
